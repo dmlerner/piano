@@ -1,16 +1,20 @@
 import mido
 import time
+import sys
 
 class PianoListener:
   def __init__(self):
     self.start_time = time.time()
     self.port = PianoListener.get_port()
+    self.log = open('log.csv', 'a+')
 
   @staticmethod
   def get_port(port_name=u'USB func for MIDI:USB func for MIDI MIDI 1 36:0'):
     port_names = mido.get_output_names()
     print port_names
-    assert port_name in port_names # edit distance pull from options? lol
+    if not port_name in port_names:
+        print 'guessing port...'
+        port_name = port_names[0]
     port = mido.open_input(port_name)
     return port
 
@@ -25,6 +29,10 @@ class PianoListener:
   def handle_message(self, message):
     if message.type == 'note_on':
       note = Note(message.note, self.now())
+      if note.note == 108:
+          self.log.close()
+          sys.exit()
+      self.log.write(str(note) + '\n')
       print note
 
   def now(self):

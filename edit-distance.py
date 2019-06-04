@@ -45,6 +45,11 @@ class Note:
     def __lt__(self, other):
         return self.start < other.start
 
+    def __iter__(self):
+        yield self.note
+        yield self.start
+        yield self.duration
+
 def argmin(x):
     return x.index(min(x))
 
@@ -265,6 +270,15 @@ def set_tempo(notes, tempo):
     for note in notes:
         note.start /= tempo / 60
 
+def round_starts(notes, time_signature_denominator=4, time_units_per_beat=4):
+    # with the defaults, we report times in sixteenth notes, where the quarter note gets the beat
+    scale_factor = time_signature_denominator * time_units_per_beat
+    for note in notes:
+        old = note.start * scale_factor
+        note.start = int(round(scale_factor * note.start))
+        deviation = old - note.start
+        print old, note.start, deviation
+
 def get_dp_vals(dp):
     return 'dp vals', [dist for row in dp for (dist, op) in row]
 
@@ -288,3 +302,22 @@ def test_sonatina():
     Note.deletion_weight = .5
     assert get_note_uses(a, b) == range(4) + [5, 6, None, 7] + range(9, len(b)) + [None]*(len(a) - len(b) + 1) # make sure this seems like the right answer...
 test_sonatina()
+
+def align(filename, tempo):
+    # returns with time measured in quarter notes at $tempo, starting from zero
+    with open(filename) as f:
+        lines = f.readlines()
+    notes = []
+    for line in lines:
+        note, start = line.split()
+        notes.append(Note(int(note), float(start), 1))
+    print lines[:5]
+    print lines[-5:]
+    #notes = [Note(note, start, 1) for line in lines for (note, start, _) in line.split()] # fix up durations some day?
+    fix_offset(notes)
+    set_tempo(notes, tempo)
+    round_starts(notes) # plumb so as not to use defaults
+    return notes
+
+notes = align('minuet.csv', 80)
+#print notes
