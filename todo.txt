@@ -1,0 +1,14 @@
+to generate SoT
+	just play
+	but run it through a rythm aligner
+	that knows everything is on some sixteenth note
+		or whatever
+		eg if there's triplets and sixteenths, might have to do 12ths of a beat
+	do it for each hand separately?
+teamviewer to android
+	works
+visualizer
+	roll my own
+	because lillypond etc  will be slow
+	because they don't incrementally generate png
+show SoT left hand
