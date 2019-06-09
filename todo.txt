@@ -8,7 +8,17 @@ to generate SoT
 teamviewer to android
 	works
 visualizer
-	roll my own
-	because lillypond etc  will be slow
-	because they don't incrementally generate png
-show SoT left hand
+	roll my own?
+		because lillypond etc  will be slow
+		because they don't incrementally generate png
+	start with pylab for easy prototyping
+		fuck frontend works
+
+one thread updates pylab png view
+	svg?
+one thread modifies colors
+	takes raw notation
+	runs backend to determine colors
+	converts to music21
+	calls lily to make png
+
