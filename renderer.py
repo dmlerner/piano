@@ -5,15 +5,13 @@ import time
 import re
 import pdb
 
-extension = '.svg'
-
 class Renderer:
 
     def __init__(self, stream=None, writer='lily.ly', viewer='svg_refreshview.py', path='sheetmusic'):
         self.stream = stream or music21.stream.Stream()
         self.writer = writer
         self.viewer = viewer
-        self.path = path + str(time.time())
+        self.path = path #+ str(time.time())
 
     def write(self):
         self.stream.write(self.writer, fp=self.path)
@@ -36,7 +34,7 @@ class Renderer:
     def fix_colors(self, ly_lines):
         for i, line in enumerate(ly_lines):
             if '\color' in line:
-                parsed = head, r, g, b, tail = re.search(r'(.*)\color "(.*) (.*) (.*)" (.*)', line).groups()
+                head, r, g, b, tail = re.search(r'(.*)\color "(.*) (.*) (.*)" (.*)', line).groups()
                 ly_lines[i] = '%s \override NoteHead #\'color = #(rgb-color %s %s %s) %s' % (head[:-2], r, g, b, tail)
 
     def loop_write(self, frames=float('inf'), delay=0):
@@ -47,29 +45,27 @@ class Renderer:
             time.sleep(delay)
 
     def view(self):
-        view_command = 'python ' + self.viewer + ' ' + self.path + extension
+        view_command = 'python ' + self.viewer + ' ' + self.path + '.svg'
         os.system(view_command)
 
     def animate(self, frames=float('inf'), delay=0):
         threading.Thread(target=self.loop_write, args=(frames, delay)).start()
-        while not os.path.isfile(self.path + extension):
+        while not os.path.isfile(self.path + '.svg'):
             time.sleep(.1)
         self.view()
 
 def main():
-    r = Renderer()
-    #use_rgb = True
-    use_rgb = True
     def toggle_color(note):
         for i in range(100):
             time.sleep(.2)
-            #raw_input('enter to toggle color')
-            note.style.color = [['green1', 'green2'], ['.5 0 0', '0 .5 0']][use_rgb][i%2]
+            note.style.color = ['.5 0 0', '0 .5 0'][i%2]
     note = music21.note.Note('F5')
-    note.style.color = ['blue', '0 0 .5'][use_rgb]
+    note.style.color = '0 0 .5'
+    r = Renderer()
     r.stream.append(note)
     r.write()
     threading.Thread(target=toggle_color, args=(note,)).start()
     r.animate()
 
-main()
+if __name__ == '__main__':
+    main()
