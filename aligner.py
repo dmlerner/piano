@@ -1,5 +1,6 @@
 import random
-import note
+import midinote
+import util
 
 def get_distance_dp(a, b):
   dp = [[(float('inf'), None)]*(len(b)+1) for j in range(len(a)+1)]
@@ -30,8 +31,8 @@ def get_distance_dp(a, b):
   return dp
 
 def test_get_distance_dp():
-  a = note.Note(0, 0, 1)
-  b = note.Note(1, 0, 1)
+  a = midinote.MidiNote(0, 0, 1)
+  b = midinote.MidiNote(1, 0, 1)
   A = a, a, a
   B = b, b, a, b, a
   distance_dp = get_distance_dp(A, B)
@@ -62,8 +63,8 @@ def get_optimal_alignment(a, b):
   return outer_dp, b_bounds, b[slice(*b_bounds)], optimal[0]
 
 def test_get_optimal_alignment():
-  a = note.Note(0, 0, 1)
-  b = note.Note(1, 0, 1)
+  a = midinote.MidiNote(0, 0, 1)
+  b = midinote.MidiNote(1, 0, 1)
   A = a, a, a
   B = b, b, a, b, a
   dp, b_bounds, b_slice, optimal = get_optimal_alignment(A, B)
@@ -107,7 +108,7 @@ def test_get_optimal_alignment():
   assert b_slice == (a, b, a)
   assert optimal == 1
 
-  c = note.Note(4, 0, 1)
+  c = midinote.MidiNote(4, 0, 1)
   C = c, c, a, c, a
   dp, c_bounds, c_slice, optimal = get_optimal_alignment(A, C)
 
@@ -143,19 +144,19 @@ def get_note_uses(a, b):
   return [pairing + optimal_alignment[1][0] if pairing is not None else None for pairing in pairings]
 
 def test_get_note_uses():
-  a = note.Note(0, 0, 1)
-  b = note.Note(4, 0, 1)
+  a = midinote.MidiNote(0, 0, 1)
+  b = midinote.MidiNote(4, 0, 1)
   A = [a, a, a]
   B = [b, b, a, b, a]
   pairings = get_note_uses(A, B)
   assert pairings == [None, None, 2]
 
   I = range(12)
-  scale = [note.Note(i, i, 1) for i in I]
-  played = [note.Note(i, i-.05+.1*random.random(), .95+.1*random.random()) for i in I]
-  mistaken_note = note.Note(100, 4.3, 300)
+  scale = [midinote.MidiNote(i, i, 1) for i in I]
+  played = [midinote.MidiNote(i, i-.05+.1*random.random(), .95+.1*random.random()) for i in I]
+  mistaken_note = midinote.MidiNote(100, 4.3, 300)
   played.append(mistaken_note)
-  played.insert(0, note.Note(100, -54, 300))
+  played.insert(0, midinote.MidiNote(100, -54, 300))
   pairings = get_note_uses(played, scale)
   # notice that mistaken note shows up in the time ordered position in correct_pairings as None
   correct_pairings = [None, 0, 1, 2, 3, 4, None, 5, 6, 7, 8, 9, 10, 11]
@@ -169,96 +170,16 @@ def test_get_note_uses():
   assert get_note_uses(played, scale) == correct_pairings
 
 def test_algorithms():
-  note.Note.note_distance_weight = 1
-  note.Note.start_distance_weight = 1
-  note.Note.duration_distance_weight = 1
+  midinote.MidiNote.note_distance_weight = 1
+  midinote.MidiNote.start_distance_weight = 1
+  midinote.MidiNote.duration_distance_weight = 1
 
-  note.Note.deletion_weight = 1 + 2**-3
+  midinote.MidiNote.deletion_weight = 1 + 2**-3
 
   test_get_distance_dp()
   test_get_optimal_alignment()
   test_get_note_uses()
-
-def parse(filename):
-  with open(filename) as f:
-    lines = f.readlines()
-  notes = []
-  for line in lines:
-    note, start = map(float, line.split())
-    notes.append(note.Note(note, start, 1))
-  return notes
-
-def fix_offset(notes):
-  # first note starts at time 0
-  # hm, but when we align against some section, it seems like we want to treat offset from first note as zero
-  # does that mess up dp?
-  # for now, just set the weight for starts to zero
-  offset = notes[0].start
-  for note in notes:
-    note.start = note.start - offset
-
-def set_tempo(notes, tempo):
-  # measure time in seconds
-  # would beats be more convennient?
-  # 3.3s for 30 "beats"
-  # 30/(3.3/60) = 545.45 bpm
-  # clearly these are sixteenth notes
-  # or whatever I did in teh sample
-  # to line up first 32 data
-  for note in notes:
-    note.start /= tempo / 60
-
-def round_starts(notes, time_signature_denominator=4, time_units_per_beat=4):
-  # with the defaults, we report times in sixteenth notes, where the quarter note gets the beat
-  scale_factor = time_signature_denominator * time_units_per_beat
-  for note in notes:
-    old = note.start * scale_factor
-    note.start = int(round(scale_factor * note.start))
-    deviation = old - note.start
-    print old, note.start, deviation
-
-def get_dp_vals(dp):
-  return 'dp vals', [dist for row in dp for (dist, op) in row]
-
-def test_sonatina():
-  note.Note.start_distance_weight = 1
-  note.Note.deletion_weight = 10
-  a = parse('sonatina-play.csv')
-  b = parse('sonatina-score.csv')
-  fix_offset(a)
-  fix_offset(b)
-  n = min(len(a), len(b))
-  tempo = (b[n-1].start / a[n-1].start) * 60
-  set_tempo(b, tempo)
-  assert get_note_uses(a[3:7], b) == [3, 4, 5, 6]
-  assert get_note_uses(a, b) == range(len(b)) + [None]*(len(a) - len(b))
-  del a[4]
-  assert get_note_uses(a, b) == range(4) + range(5, len(b)) + [None]*(len(a) - len(b) + 1)
-  a[6], a[7] = a[7], a[6]
-  assert get_note_uses(a, b) == range(4) + range(5, len(b)) + [None]*(len(a) - len(b) + 1)
-  a[6].start, a[7].start = a[7].start, a[6].start
-  note.Note.deletion_weight = .5
-  assert get_note_uses(a, b) == range(4) + [5, 6, None, 7] + range(9, len(b)) + [None]*(len(a) - len(b) + 1) # make sure this seems like the right answer...
-test_sonatina()
-
-def align(filename, tempo):
-  # returns with time measured in quarter notes at $tempo, starting from zero
-  with open(filename) as f:
-    lines = f.readlines()
-  notes = []
-  for line in lines:
-    note, start = line.split()
-    notes.append(note.Note(int(note), float(start), 1))
-  print lines[:5]
-  print lines[-5:]
-  #notes = [note.Note(note, start, 1) for line in lines for (note, start, _) in line.split()] # fix up durations some day?
-  fix_offset(notes)
-  set_tempo(notes, tempo)
-  round_starts(notes) # plumb so as not to use defaults
-  return notes
-
-notes = align('minuet.csv', 80)
-#print notes
+  print 'all aligner algorithm tests pass'
 
 def main():
   test_algorithms()

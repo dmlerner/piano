@@ -1,6 +1,5 @@
-import pdb
 
-class Note:
+class MidiNote:
 
   note_distance_weight = 1
   start_distance_weight = 1
@@ -43,8 +42,8 @@ class Note:
     yield self.duration
 
 def main():
-  a = Note(20, 0, 1)
-  b = Note(21, 1, 3)
+  a = MidiNote(20, 0, 1)
+  b = MidiNote(21, 1, 3)
   print a.distance(b)
   print a.deletion_cost()
   print a < b
