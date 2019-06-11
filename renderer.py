@@ -19,18 +19,13 @@ class Renderer:
         self.stream.write(self.writer, fp=self.path)
         with open(self.path) as f:
             ly_lines = f.readlines()
-        #pdb.set_trace()
-        print ''.join(ly_lines)
-        print '.'*20
         self.remove_lily_header(ly_lines)
-        print ''.join(ly_lines)
-        print '.'*20
         self.fix_colors(ly_lines)
-        print ''.join(ly_lines)
-        print
+        ly_lines.insert(0, r'\version "2.18.2"')
         with open(self.path + '.ly', 'w') as f:
             f.write(''.join(ly_lines))
-        os.system('lilypond -dbackend=svg ' + self.path + '.ly')
+        write_lily_command = 'lilypond -dbackend=svg ' + self.path + '.ly'
+        threading.Thread(target=os.system, args=(write_lily_command,)).start()
 
     def remove_lily_header(self, ly_lines):
         for i, line in enumerate(ly_lines):
@@ -47,21 +42,17 @@ class Renderer:
     def loop_write(self, frames=float('inf'), delay=0):
         frame = 0
         while frame < frames:
-            print 'frame ', frame
             frame += 1
             self.write()
             time.sleep(delay)
 
     def view(self):
         view_command = 'python ' + self.viewer + ' ' + self.path + extension
-        print 'view_command: ', view_command
         os.system(view_command)
 
     def animate(self, frames=float('inf'), delay=0):
-        return
         threading.Thread(target=self.loop_write, args=(frames, delay)).start()
         while not os.path.isfile(self.path + extension):
-            print 'path not found ' + self.path + extension
             time.sleep(.1)
         self.view()
 
@@ -78,7 +69,6 @@ def main():
     note.style.color = ['blue', '0 0 .5'][use_rgb]
     r.stream.append(note)
     r.write()
-    1/0
     threading.Thread(target=toggle_color, args=(note,)).start()
     r.animate()
 
