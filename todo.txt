@@ -22,3 +22,9 @@ one thread modifies colors
 	converts to music21
 	calls lily to make png
 
+to get svg with rgb
+	set note color to my custom strings
+	stream.write('lily.ly', FILENAME)
+	delete preamble bullshit
+		which will make it always output pdf
+
